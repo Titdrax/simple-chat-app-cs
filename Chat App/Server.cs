@@ -152,9 +152,9 @@ namespace Chat_App
 
             private void NewTopic(NewTopicRequest newTopicRequest)
             {
-                foreach (Topic t in topics)
+                foreach (Topic topic in topics)
                 {
-                    if (t.Name == newTopicRequest.Topic.Name)
+                    if (topic.Name == newTopicRequest.Topic.Name)
                     {
                         Net.SendMsg(comm.GetStream(), new NewTopicResponse(true, "This topic already exists"));
                         return;
@@ -192,6 +192,7 @@ namespace Chat_App
                 {
                     if (topic.Name == joinTopicRequest.Topic.Name)
                     {
+                        joinTopicRequest.User.TcpClient = comm;
                         topic.Users.Add(joinTopicRequest.User);
                         Console.WriteLine(joinTopicRequest.User.Login + " joined topic " + joinTopicRequest.Topic.Name);
                         Net.SendMsg(comm.GetStream(), new JoinTopicResponse(topic));
@@ -221,8 +222,7 @@ namespace Chat_App
                     if (topic.Name == newPublicMessageRequest.PublicMessage.Topic.Name)
                     {
                         topic.PublicMessages.Add(newPublicMessageRequest.PublicMessage);
-                        Console.WriteLine(newPublicMessageRequest.PublicMessage.Sender.Login + " sent a message in " + topic.Name +
-                            "\nNotification sent to every user in this topic");
+                        Console.WriteLine(newPublicMessageRequest.PublicMessage.Sender.Login + " sent a message in " + topic.Name);
 
                         FileManager.WriteToBinaryFile(topics, "topics");
 
@@ -258,7 +258,7 @@ namespace Chat_App
             {
                 foreach (User user in users)
                 {
-                    if (user.Login == logoutRequest.User.Login)
+                    if (user.Login == logoutRequest.User.Login && user.TcpClient != null)
                     {
                         user.TcpClient = null;
                         Console.WriteLine(user.Login + " logged out");

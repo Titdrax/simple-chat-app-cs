@@ -8,6 +8,8 @@ namespace Models
     {
         private string login;
         private string password;
+
+        [NonSerialized]
         private TcpClient tcpClient;
 
         public string Login { get => login; set => login = value; }
