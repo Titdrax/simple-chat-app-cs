@@ -35,17 +35,19 @@ namespace Chat_App
         private class Receiver
         {
             private readonly TcpClient comm;
+            private bool clientRunning;
 
             public Receiver(TcpClient s)
             {
                 comm = s;
+                clientRunning = true;
             }
 
             public void DoOperation()
             {
                 Initialize();
 
-                while (true)
+                while (clientRunning)
                 {
                     IRequest request = (IRequest)Net.RcvMsg(comm.GetStream());
 
@@ -84,6 +86,11 @@ namespace Chat_App
                     else if (request is LogoutRequest logoutRequest)
                     {
                         Logout(logoutRequest);
+                    }
+                    else if (request is ClientCloseRequest)
+                    {
+                        clientRunning = false;
+                        Console.WriteLine("Connection severed @" + comm);
                     }
                 }
             }

@@ -114,4 +114,7 @@ namespace Communication
 
         public User User => user;
     }
+
+    [Serializable]
+    public class ClientCloseRequest : IRequest { }
 }

@@ -2,6 +2,7 @@
 using Models;
 using System;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace Client
@@ -12,6 +13,52 @@ namespace Client
         private readonly int port;
         private TcpClient comm;
         private User user;
+        private Topic topic;
+
+
+        private bool exitSystem = false;
+
+        #region Trap application termination
+        [DllImport("Kernel32")]
+        private static extern bool SetConsoleCtrlHandler(EventHandler handler, bool add);
+        private delegate bool EventHandler(CtrlType sig);
+        private EventHandler handler;
+
+        private enum CtrlType
+        {
+            CTRL_C_EVENT = 0,
+            CTRL_BREAK_EVENT = 1,
+            CTRL_CLOSE_EVENT = 2,
+            CTRL_LOGOFF_EVENT = 5,
+            CTRL_SHUTDOWN_EVENT = 6
+        }
+
+        private bool Handler(CtrlType sig)
+        {
+            Console.WriteLine("Exiting system due to external CTRL-C, or process kill, or shutdown");
+
+            if (user != null)
+            {
+                if (topic != null)
+                {
+                    ExitTopic();
+                }
+                Logout();
+            }
+            //do your cleanup here
+            Net.SendMsg(comm.GetStream(), new ClientCloseRequest());
+
+            Console.WriteLine("Cleanup complete");
+
+            //allow main to run off
+            exitSystem = true;
+
+            //shutdown right away so there are no lingering threads
+            Environment.Exit(-1);
+
+            return true;
+        }
+        #endregion
 
         public Client(string h, int p)
         {
@@ -19,14 +66,18 @@ namespace Client
             port = p;
             comm = null;
             user = null;
+            topic = null;
         }
 
         public void Start()
         {
+            handler += new EventHandler(Handler);
+            SetConsoleCtrlHandler(handler, true);
+
             comm = new TcpClient(hostname, port);
             Console.WriteLine("Connection established");
 
-            while (true)
+            while (!exitSystem)
             {
                 Authentication();
 
@@ -181,54 +232,53 @@ namespace Client
             return new JoinTopicResponse(null, true, responseGetTopics.ErrMsg);
         }
 
-        private void GetPublicMessages(object obj)
-        {
-            if (obj is Topic topic)
-            {
-                while (true)
-                {
-                    Console.Clear();
-                    foreach (PublicMessage publicMessage in topic.PublicMessages)
-                    {
-                        Console.WriteLine(publicMessage);
-                    }
-                    Console.WriteLine("Write your message or EXIT if you want to exit the topic");
-
-                    NewPublicMessageResponse newPublicMessageResponse = (NewPublicMessageResponse)Net.RcvMsg(comm.GetStream());
-                    topic = newPublicMessageResponse.Topic;
-                }
-            }
-        }
-
         private void SendPublicMessage(JoinTopicResponse joinTopicResponse)
         {
             WriteError(joinTopicResponse);
 
             if (!joinTopicResponse.Error)
             {
+                topic = joinTopicResponse.Topic;
                 string message;
 
-                Thread getMessagesThread = new Thread(new ParameterizedThreadStart(GetPublicMessages));
-                getMessagesThread.Start(joinTopicResponse.Topic);
+                Thread getMessagesThread = new Thread(new ThreadStart(GetPublicMessages));
+                getMessagesThread.Start();
 
                 do
                 {
                     message = Console.ReadLine();
                     if (message != "EXIT")
                     {
-                        Net.SendMsg(comm.GetStream(), new NewPublicMessageRequest(new PublicMessage(message, user, joinTopicResponse.Topic)));
+                        Net.SendMsg(comm.GetStream(), new NewPublicMessageRequest(new PublicMessage(message, user, topic)));
                     }
                 } while (message != "EXIT");
 
-                getMessagesThread.Abort();
+                ExitTopic();
 
-                ExitTopic(joinTopicResponse.Topic);
+                getMessagesThread.Join();
             }
         }
 
-        private void ExitTopic(Topic topic)
+        private void GetPublicMessages()
+        {
+            while (topic != null)
+            {
+                Console.Clear();
+                foreach (PublicMessage publicMessage in topic.PublicMessages)
+                {
+                    Console.WriteLine(publicMessage);
+                }
+                Console.WriteLine("Write your message or EXIT if you want to exit the topic");
+
+                NewPublicMessageResponse newPublicMessageResponse = (NewPublicMessageResponse)Net.RcvMsg(comm.GetStream());
+                topic = newPublicMessageResponse.Topic;
+            }
+        }
+
+        private void ExitTopic()
         {
             Net.SendMsg(comm.GetStream(), new ExitTopicRequest(topic, user));
+            topic = null;
         }
 
         private void WriteError(Response response)
