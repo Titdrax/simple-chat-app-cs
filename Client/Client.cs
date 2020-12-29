@@ -26,41 +26,11 @@ namespace Client
             comm = new TcpClient(hostname, port);
             Console.WriteLine("Connection established");
 
-
-
             while (true)
             {
                 Authentication();
-                string choice;
-                do
-                {
-                    Console.Clear();
-                    do
-                    {
-                        Console.WriteLine("Do you wish to:\n" +
-                            "1- Create Topic\n" +
-                            "2- Join Topic\n" +
-                            "3- Private message\n" +
-                            "4- Logout");
-                        choice = Console.ReadLine();
-                    } while (choice != "1" && choice != "2" && choice != "3" && choice != "4");
 
-                    switch (choice)
-                    {
-                        case "1":
-                            CreateTopic();
-                            break;
-                        case "2":
-                            PublicMessage();
-                            break;
-                        case "3":
-                            PrivateMessage();
-                            break;
-                        case "4":
-                            Logout();
-                            break;
-                    }
-                } while (user != null);
+                Menu();
             }
         }
 
@@ -84,6 +54,40 @@ namespace Client
                     _ => new SignResponse(null, true),
                 };
             } while (signResponse.Error);
+        }
+
+        private void Menu()
+        {
+            string choice;
+            do
+            {
+                Console.Clear();
+                do
+                {
+                    Console.WriteLine("Do you wish to:\n" +
+                        "1- Create Topic\n" +
+                        "2- Join Topic\n" +
+                        "3- Private message\n" +
+                        "4- Logout");
+                    choice = Console.ReadLine();
+                } while (choice != "1" && choice != "2" && choice != "3" && choice != "4");
+
+                switch (choice)
+                {
+                    case "1":
+                        CreateTopic();
+                        break;
+                    case "2":
+                        PublicMessage();
+                        break;
+                    case "3":
+                        PrivateMessage();
+                        break;
+                    case "4":
+                        Logout();
+                        break;
+                }
+            } while (user != null);
         }
 
         private SignResponse Login()
@@ -133,6 +137,17 @@ namespace Client
         private void PublicMessage()
         {
             SendPublicMessage(JoinTopic(GetTopics()));
+        }
+
+        private void PrivateMessage()
+        {
+
+        }
+
+        private void Logout()
+        {
+            Net.SendMsg(comm.GetStream(), new LogoutRequest(user));
+            user = null;
         }
 
         private GetTopicsResponse GetTopics()
@@ -214,17 +229,6 @@ namespace Client
         private void ExitTopic(Topic topic)
         {
             Net.SendMsg(comm.GetStream(), new ExitTopicRequest(topic, user));
-        }
-
-        private void Logout()
-        {
-            Net.SendMsg(comm.GetStream(), new LogoutRequest(user));
-            user = null;
-        }
-
-        private void PrivateMessage()
-        {
-
         }
 
         private void WriteError(Response response)
