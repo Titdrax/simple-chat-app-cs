@@ -21,6 +21,11 @@ namespace Models
             Sender = usr;
             Time = DateTime.Now;
         }
+
+        public override string ToString()
+        {
+            return Sender.Login + " - " + Time.Day + "/" + Time.Month + "/" + Time.Year + " " + Time.Hour + ":" + Time.Minute + "\n" + Text + "\n";
+        }
     }
 
     [Serializable]
@@ -46,11 +51,6 @@ namespace Models
         public PublicMessage(string message, User sender, Topic topic) : base(message, sender)
         {
             Topic = topic;
-        }
-
-        public override string ToString()
-        {
-            return Sender.Login + " - " + Time.Day + "/" + Time.Month + "/" + Time.Year + " " + Time.Hour + ":" + Time.Minute + "\n" + Text + "\n";
         }
     }
 }

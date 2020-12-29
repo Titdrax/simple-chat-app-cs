@@ -1,7 +1,6 @@
 ﻿using Communication;
 using Models;
 using System;
-using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 
@@ -27,26 +26,12 @@ namespace Client
             comm = new TcpClient(hostname, port);
             Console.WriteLine("Connection established");
 
-            Response response;
-            string choice;
+
+
             while (true)
             {
-                Console.Clear();
-                do
-                {
-                    Console.WriteLine("Do you wish to:\n" +
-                        "1- Login\n" +
-                        "2- Register");
-                    choice = Console.ReadLine();
-
-                    response = choice switch
-                    {
-                        "1" => Login(),
-                        "2" => Register(),
-                        _ => new SignResponse(null, true),
-                    };
-                } while (response.Error);
-
+                Authentication();
+                string choice;
                 do
                 {
                     Console.Clear();
@@ -63,10 +48,7 @@ namespace Client
                     switch (choice)
                     {
                         case "1":
-                            do
-                            {
-                                response = CreateTopic();
-                            } while (response.Error);
+                            CreateTopic();
                             break;
                         case "2":
                             PublicMessage();
@@ -80,6 +62,28 @@ namespace Client
                     }
                 } while (user != null);
             }
+        }
+
+        private void Authentication()
+        {
+            SignResponse signResponse;
+            string choice;
+
+            Console.Clear();
+            do
+            {
+                Console.WriteLine("Do you wish to:\n" +
+                    "1- Login\n" +
+                    "2- Register");
+                choice = Console.ReadLine();
+
+                signResponse = choice switch
+                {
+                    "1" => Login(),
+                    "2" => Register(),
+                    _ => new SignResponse(null, true),
+                };
+            } while (signResponse.Error);
         }
 
         private SignResponse Login()
@@ -114,17 +118,16 @@ namespace Client
             return response;
         }
 
-        private NewTopicResponse CreateTopic()
+        private void CreateTopic()
         {
             Console.WriteLine("What will be the topic's name?");
             string name = Console.ReadLine();
 
             Net.SendMsg(comm.GetStream(), new NewTopicRequest(new Topic(name)));
             NewTopicResponse reponse = (NewTopicResponse)Net.RcvMsg(comm.GetStream());
+
             Console.Clear();
             WriteError(reponse);
-
-            return reponse;
         }
 
         private void PublicMessage()
@@ -228,7 +231,7 @@ namespace Client
         {
             if (response.Error)
             {
-                Console.WriteLine(response.ErrMsg);
+                Console.WriteLine(response.ErrMsg + "\n");
             }
         }
     }
