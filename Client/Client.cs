@@ -15,51 +15,6 @@ namespace Client
         private User user;
         private Topic topic;
 
-
-        private bool exitSystem = false;
-
-        #region Trap application termination
-        [DllImport("Kernel32")]
-        private static extern bool SetConsoleCtrlHandler(EventHandler handler, bool add);
-        private delegate bool EventHandler(CtrlType sig);
-        private EventHandler handler;
-
-        private enum CtrlType
-        {
-            CTRL_C_EVENT = 0,
-            CTRL_BREAK_EVENT = 1,
-            CTRL_CLOSE_EVENT = 2,
-            CTRL_LOGOFF_EVENT = 5,
-            CTRL_SHUTDOWN_EVENT = 6
-        }
-
-        private bool Handler(CtrlType sig)
-        {
-            Console.WriteLine("Exiting system due to external CTRL-C, or process kill, or shutdown");
-
-            if (user != null)
-            {
-                if (topic != null)
-                {
-                    ExitTopic();
-                }
-                Logout();
-            }
-            //do your cleanup here
-            Net.SendMsg(comm.GetStream(), new ClientCloseRequest());
-
-            Console.WriteLine("Cleanup complete");
-
-            //allow main to run off
-            exitSystem = true;
-
-            //shutdown right away so there are no lingering threads
-            Environment.Exit(-1);
-
-            return true;
-        }
-        #endregion
-
         public Client(string h, int p)
         {
             hostname = h;
@@ -255,7 +210,7 @@ namespace Client
 
                 ExitTopic();
 
-                getMessagesThread.Join();
+                getMessagesThread.Abort();
             }
         }
 
@@ -287,6 +242,43 @@ namespace Client
             {
                 Console.WriteLine(response.ErrMsg + "\n");
             }
+        }
+
+
+        private bool exitSystem = false;
+        [DllImport("Kernel32")]
+        private static extern bool SetConsoleCtrlHandler(EventHandler handler, bool add);
+        private delegate bool EventHandler(CtrlType sig);
+        private EventHandler handler;
+
+        private enum CtrlType
+        {
+            CTRL_C_EVENT = 0,
+            CTRL_BREAK_EVENT = 1,
+            CTRL_CLOSE_EVENT = 2,
+            CTRL_LOGOFF_EVENT = 5,
+            CTRL_SHUTDOWN_EVENT = 6
+        }
+
+        private bool Handler(CtrlType sig)
+        {
+            if (user != null)
+            {
+                if (topic != null)
+                {
+                    ExitTopic();
+                }
+                Logout();
+            }
+
+            Net.SendMsg(comm.GetStream(), new ClientCloseRequest());
+            comm.Close();
+
+            exitSystem = true;
+
+            Environment.Exit(-1);
+
+            return true;
         }
     }
 }

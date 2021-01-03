@@ -51,46 +51,40 @@ namespace Chat_App
                 {
                     IRequest request = (IRequest)Net.RcvMsg(comm.GetStream());
 
-                    if (request is RegisterRequest registerRequest)
+                    switch (request)
                     {
-                        Register(registerRequest);
-                    }
-                    else if (request is LoginRequest loginRequest)
-                    {
-                        Login(loginRequest);
-                    }
-                    else if (request is NewTopicRequest newTopicRequest)
-                    {
-                        NewTopic(newTopicRequest);
-                    }
-                    else if (request is GetTopicsRequest)
-                    {
-                        GetTopics();
-                    }
-                    else if (request is JoinTopicRequest joinTopicRequest)
-                    {
-                        JoinTopic(joinTopicRequest);
-                    }
-                    else if (request is GetPublicMessagesRequest publicMessagesRequest)
-                    {
-                        GetPublicMessages(publicMessagesRequest);
-                    }
-                    else if (request is NewPublicMessageRequest sendPublicMessageRequest)
-                    {
-                        SendPublicMessage(sendPublicMessageRequest);
-                    }
-                    else if (request is ExitTopicRequest exitTopicRequest)
-                    {
-                        ExitTopic(exitTopicRequest);
-                    }
-                    else if (request is LogoutRequest logoutRequest)
-                    {
-                        Logout(logoutRequest);
-                    }
-                    else if (request is ClientCloseRequest)
-                    {
-                        clientRunning = false;
-                        Console.WriteLine("Connection severed @" + comm);
+                        case RegisterRequest registerRequest:
+                            Register(registerRequest);
+                            break;
+                        case LoginRequest loginRequest:
+                            Login(loginRequest);
+                            break;
+                        case NewTopicRequest newTopicRequest:
+                            NewTopic(newTopicRequest);
+                            break;
+                        case GetTopicsRequest _:
+                            GetTopics();
+                            break;
+                        case JoinTopicRequest joinTopicRequest:
+                            JoinTopic(joinTopicRequest);
+                            break;
+                        case GetPublicMessagesRequest getPublicMessagesRequest:
+                            GetPublicMessages(getPublicMessagesRequest);
+                            break;
+                        case NewPublicMessageRequest newPublicMessageRequest:
+                            SendPublicMessage(newPublicMessageRequest);
+                            break;
+                        case ExitTopicRequest exitTopicRequest:
+                            ExitTopic(exitTopicRequest);
+                            break;
+                        case LogoutRequest logoutRequest:
+                            Logout(logoutRequest);
+                            break;
+                        case ClientCloseRequest _:
+                            CloseConnection();
+                            break;
+                        default:
+                            break;
                     }
                 }
             }
@@ -275,6 +269,14 @@ namespace Chat_App
                     }
                 }
             }
+
+            private void CloseConnection()
+            {
+                clientRunning = false;
+                Console.WriteLine("Connection terminated @" + comm);
+                comm.Close();
+            }
+                    
         }
     }
 }
