@@ -21,12 +21,12 @@ namespace Chat_App
 
         public void Start()
         {
-            TcpListener l = new TcpListener(new IPAddress(new byte[] { 127, 0, 0, 1 }), port);
+            var l = new TcpListener(new IPAddress(new byte[] { 127, 0, 0, 1 }), port);
             l.Start();
 
             while (true)
             {
-                TcpClient comm = l.AcceptTcpClient();
+                var comm = l.AcceptTcpClient();
                 Console.WriteLine("Connection established @" + comm);
                 new Thread(new Receiver(comm).DoOperation).Start();
             }
@@ -49,40 +49,50 @@ namespace Chat_App
 
                 while (clientRunning)
                 {
-                    IRequest request = (IRequest)Net.RcvMsg(comm.GetStream());
+                    var request = (IRequest)Net.RcvMsg(comm.GetStream());
 
                     switch (request)
                     {
                         case RegisterRequest registerRequest:
                             Register(registerRequest);
                             break;
+
                         case LoginRequest loginRequest:
                             Login(loginRequest);
                             break;
+
                         case NewTopicRequest newTopicRequest:
                             NewTopic(newTopicRequest);
                             break;
+
                         case GetTopicsRequest _:
                             GetTopics();
                             break;
+
                         case JoinTopicRequest joinTopicRequest:
                             JoinTopic(joinTopicRequest);
                             break;
+
                         case GetPublicMessagesRequest getPublicMessagesRequest:
                             GetPublicMessages(getPublicMessagesRequest);
                             break;
+
                         case NewPublicMessageRequest newPublicMessageRequest:
                             SendPublicMessage(newPublicMessageRequest);
                             break;
+
                         case ExitTopicRequest exitTopicRequest:
                             ExitTopic(exitTopicRequest);
                             break;
+
                         case LogoutRequest logoutRequest:
                             Logout(logoutRequest);
                             break;
+
                         case ClientCloseRequest _:
                             CloseConnection();
                             break;
+
                         default:
                             break;
                     }
@@ -109,7 +119,7 @@ namespace Chat_App
 
             private void Register(RegisterRequest registerRequest)
             {
-                foreach (User user in users)
+                foreach (var user in users)
                 {
                     if (registerRequest.User.Login == user.Login)
                     {
@@ -117,7 +127,7 @@ namespace Chat_App
                         return;
                     }
                 }
-                User newUser = registerRequest.User;
+                var newUser = registerRequest.User;
                 newUser.TcpClient = comm;
                 users.Add(newUser);
 
@@ -129,7 +139,7 @@ namespace Chat_App
 
             private void Login(LoginRequest loginRequest)
             {
-                foreach (User user in users)
+                foreach (var user in users)
                 {
                     if (loginRequest.User.Login == user.Login && loginRequest.User.Password == user.Password)
                     {
@@ -153,7 +163,7 @@ namespace Chat_App
 
             private void NewTopic(NewTopicRequest newTopicRequest)
             {
-                foreach (Topic topic in topics)
+                foreach (var topic in topics)
                 {
                     if (topic.Name == newTopicRequest.Topic.Name)
                     {
@@ -161,7 +171,7 @@ namespace Chat_App
                         return;
                     }
                 }
-                Topic newTopic = newTopicRequest.Topic;
+                var newTopic = newTopicRequest.Topic;
                 topics.Add(newTopic);
 
                 Net.SendMsg(comm.GetStream(), new NewTopicResponse());
@@ -178,7 +188,7 @@ namespace Chat_App
                 }
                 else
                 {
-                    List<string> topicNames = new List<string>();
+                    var topicNames = new List<string>();
                     topics.ForEach(delegate (Topic topic)
                     {
                         topicNames.Add(topic.Name);
@@ -189,7 +199,7 @@ namespace Chat_App
 
             private void JoinTopic(JoinTopicRequest joinTopicRequest)
             {
-                foreach (Topic topic in topics)
+                foreach (var topic in topics)
                 {
                     if (topic.Name == joinTopicRequest.Topic.Name)
                     {
@@ -205,7 +215,7 @@ namespace Chat_App
 
             private void GetPublicMessages(GetPublicMessagesRequest getPuublicMessageRequest)
             {
-                foreach (Topic topic in topics)
+                foreach (var topic in topics)
                 {
                     if (topic.Name == getPuublicMessageRequest.Topic.Name)
                     {
@@ -218,7 +228,7 @@ namespace Chat_App
 
             private void SendPublicMessage(NewPublicMessageRequest newPublicMessageRequest)
             {
-                foreach (Topic topic in topics)
+                foreach (var topic in topics)
                 {
                     if (topic.Name == newPublicMessageRequest.PublicMessage.Topic.Name)
                     {
@@ -227,7 +237,7 @@ namespace Chat_App
 
                         FileManager.WriteToBinaryFile(topics, "topics");
 
-                        foreach (User user in topic.Users)
+                        foreach (var user in topic.Users)
                         {
                             Net.SendMsg(user.TcpClient.GetStream(), new NewPublicMessageResponse(topic));
                         }
@@ -238,11 +248,11 @@ namespace Chat_App
 
             private void ExitTopic(ExitTopicRequest exitTopicRequest)
             {
-                foreach (Topic topic in topics)
+                foreach (var topic in topics)
                 {
                     if (topic.Name == exitTopicRequest.Topic.Name)
                     {
-                        foreach (User user in topic.Users)
+                        foreach (var user in topic.Users)
                         {
                             if (user.Login == exitTopicRequest.User.Login)
                             {
@@ -257,7 +267,7 @@ namespace Chat_App
 
             private void Logout(LogoutRequest logoutRequest)
             {
-                foreach (User user in users)
+                foreach (var user in users)
                 {
                     if (user.Login == logoutRequest.User.Login && user.TcpClient != null)
                     {

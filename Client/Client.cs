@@ -99,12 +99,12 @@ namespace Client
         private SignResponse Login()
         {
             Console.WriteLine("Login:");
-            string login = Console.ReadLine();
+            var login = Console.ReadLine();
             Console.WriteLine("Password:");
-            string password = Console.ReadLine();
+            var password = Console.ReadLine();
 
             Net.SendMsg(comm.GetStream(), new LoginRequest(new User(login, password)));
-            SignResponse response = (SignResponse)Net.RcvMsg(comm.GetStream());
+            var response = (SignResponse)Net.RcvMsg(comm.GetStream());
 
             user = response.User;
             WriteError(response);
@@ -115,12 +115,12 @@ namespace Client
         private SignResponse Register()
         {
             Console.WriteLine("Login:");
-            string login = Console.ReadLine();
+            var login = Console.ReadLine();
             Console.WriteLine("Password:");
-            string password = Console.ReadLine();
+            var password = Console.ReadLine();
 
             Net.SendMsg(comm.GetStream(), new RegisterRequest(new User(login, password)));
-            SignResponse response = (SignResponse)Net.RcvMsg(comm.GetStream());
+            var response = (SignResponse)Net.RcvMsg(comm.GetStream());
 
             user = response.User;
             WriteError(response);
@@ -131,10 +131,10 @@ namespace Client
         private void CreateTopic()
         {
             Console.WriteLine("What will be the topic's name?");
-            string name = Console.ReadLine();
+            var name = Console.ReadLine();
 
             Net.SendMsg(comm.GetStream(), new NewTopicRequest(new Topic(name)));
-            NewTopicResponse reponse = (NewTopicResponse)Net.RcvMsg(comm.GetStream());
+            var reponse = (NewTopicResponse)Net.RcvMsg(comm.GetStream());
 
             Console.Clear();
             WriteError(reponse);
@@ -159,9 +159,8 @@ namespace Client
         private GetTopicsResponse GetTopics()
         {
             Net.SendMsg(comm.GetStream(), new GetTopicsRequest());
-            GetTopicsResponse responseGetTopics = (GetTopicsResponse)Net.RcvMsg(comm.GetStream());
 
-            return responseGetTopics;
+            return (GetTopicsResponse)Net.RcvMsg(comm.GetStream());
         }
 
         private JoinTopicResponse JoinTopic(GetTopicsResponse responseGetTopics)
@@ -173,7 +172,7 @@ namespace Client
                 {
                     Console.WriteLine("Which topic do you want to join?");
                     int i = 1;
-                    foreach (string topicName in responseGetTopics.Topics)
+                    foreach (var topicName in responseGetTopics.Topics)
                     {
                         Console.WriteLine(topicName);
                         i++;
@@ -196,7 +195,7 @@ namespace Client
                 topic = joinTopicResponse.Topic;
                 string message;
 
-                Thread getMessagesThread = new Thread(new ThreadStart(GetPublicMessages));
+                var getMessagesThread = new Thread(new ThreadStart(GetPublicMessages));
                 getMessagesThread.Start();
 
                 do
@@ -219,13 +218,13 @@ namespace Client
             while (topic != null)
             {
                 Console.Clear();
-                foreach (PublicMessage publicMessage in topic.PublicMessages)
+                foreach (var publicMessage in topic.PublicMessages)
                 {
                     Console.WriteLine(publicMessage);
                 }
                 Console.WriteLine("Write your message or EXIT if you want to exit the topic");
 
-                NewPublicMessageResponse newPublicMessageResponse = (NewPublicMessageResponse)Net.RcvMsg(comm.GetStream());
+                var newPublicMessageResponse = (NewPublicMessageResponse)Net.RcvMsg(comm.GetStream());
                 topic = newPublicMessageResponse.Topic;
             }
         }

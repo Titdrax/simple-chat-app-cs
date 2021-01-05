@@ -9,19 +9,19 @@ namespace Chat_App
     {
         public static void WriteToBinaryFile<T>(List<T> objectToWrite, string fileName)
         {
-            string filePath = fileName + ".dat";
+            var filePath = fileName + ".dat";
 
-            Stream stream = File.Open(filePath, FileMode.Create);
-            BinaryFormatter binaryFormatter = new BinaryFormatter();
+            var stream = File.Open(filePath, FileMode.Create);
+            var binaryFormatter = new BinaryFormatter();
             binaryFormatter.Serialize(stream, objectToWrite);
             stream.Close();
         }
 
         public static List<T> ReadFromBinaryFile<T>(string fileName)
         {
-            string filePath = fileName + ".dat";
-            Stream stream = File.Open(filePath, FileMode.OpenOrCreate);
-            BinaryFormatter bf = new BinaryFormatter();
+            var filePath = fileName + ".dat";
+            var stream = File.Open(filePath, FileMode.OpenOrCreate);
+            var bf = new BinaryFormatter();
             List<T> obj = default;
             try
             {
