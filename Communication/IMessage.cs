@@ -1,4 +1,4 @@
 ﻿namespace Communication
 {
-    public interface IMessage { }
+	public interface IMessage { }
 }
