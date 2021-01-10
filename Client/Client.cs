@@ -13,16 +13,18 @@ namespace Client
 		private readonly string hostname;
 		private readonly int port;
 		private TcpClient comm;
+		private bool inTopic;
+		private bool inPrivateDiscussion;
 		private string userName;
-		private string topicName;
 
 		public Client(string h, int p)
 		{
 			hostname = h;
 			port = p;
 			comm = null;
+			inTopic = false;
+			inPrivateDiscussion = false;
 			userName = null;
-			topicName = null;
 		}
 
 		public void Start()
@@ -199,7 +201,7 @@ namespace Client
 
 			if (!joinTopicResponse.Error)
 			{
-				topicName = joinTopicResponse.Topic.Name;
+				inTopic = true;
 
 				Thread getMessagesThread = new Thread(new ParameterizedThreadStart(GetPublicMessages));
 				getMessagesThread.Start(joinTopicResponse.Topic.PublicMessages);
@@ -208,7 +210,7 @@ namespace Client
 				do
 				{
 					message = Console.ReadLine();
-					Net.SendRequest(comm.GetStream(), new NewPublicMessageRequest(message, userName, topicName));
+					Net.SendRequest(comm.GetStream(), new NewPublicMessageRequest(message, userName, joinTopicResponse.Topic.Name));
 				} while (message != "EXIT");
 
 				ExitTopic();
@@ -238,8 +240,8 @@ namespace Client
 
 		private void ExitTopic()
 		{
-			Net.SendRequest(comm.GetStream(), new ExitTopicRequest(topicName, userName));
-			topicName = null;
+			Net.SendRequest(comm.GetStream(), new ExitTopicRequest(userName));
+			inTopic = false;
 		}
 		private GetUsersResponse GetUsers()
 		{
@@ -295,6 +297,8 @@ namespace Client
 
 			if (!openPrivateDiscussionResponse.Error)
 			{
+				inPrivateDiscussion = true;
+
 				Thread getMessagesThread = new Thread(new ParameterizedThreadStart(GetPrivateMessages));
 				getMessagesThread.Start(openPrivateDiscussionResponse.PrivateMessages.Value);
 
@@ -305,13 +309,14 @@ namespace Client
 					Net.SendRequest(comm.GetStream(), new NewPrivateMessageRequest(openPrivateDiscussionResponse.PrivateMessages.Key, userName, message));
 				} while (message != "EXIT");
 
-				ExitPrivateDiscussions();
+				ExitPrivateDiscussion();
 			}
 		}
 
-		private void ExitPrivateDiscussions()
+		private void ExitPrivateDiscussion()
 		{
 			Net.SendRequest(comm.GetStream(), new ExitPrivateDiscussionRequest(userName));
+			inPrivateDiscussion = false;
 		}
 
 		private void WriteError(Response response)
@@ -342,9 +347,13 @@ namespace Client
 		{
 			if (userName != null)
 			{
-				if (topicName != null)
+				if (inTopic)
 				{
 					ExitTopic();
+				}
+				if (inPrivateDiscussion)
+				{
+					ExitPrivateDiscussion();
 				}
 				Logout();
 			}

@@ -231,7 +231,7 @@ namespace Chat_App
 
 			private void ExitTopic(ExitTopicRequest exitTopicRequest)
 			{
-				Topic topic = topics.Find(t => t.Name == exitTopicRequest.TopicName);
+				Topic topic = topics.Find(t => t.Users.Find(u => exitTopicRequest.UserName == u.Login).Login == exitTopicRequest.UserName);
 				User user = users.Find(u => u.Login == exitTopicRequest.UserName);
 
 				topic.Users.Remove(user);

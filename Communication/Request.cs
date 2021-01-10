@@ -96,16 +96,12 @@ namespace Communication
 	[Serializable]
 	public class ExitTopicRequest : IRequest
 	{
-		private readonly string topicName;
 		private readonly string userName;
 
-		public ExitTopicRequest(string topicName, string userName)
+		public ExitTopicRequest(string userName)
 		{
-			this.topicName = topicName;
 			this.userName = userName;
 		}
-
-		public string TopicName => topicName;
 
 		public string UserName => userName;
 	}
