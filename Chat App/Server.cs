@@ -131,7 +131,7 @@ namespace Chat_App
 
 			private void Register(RegisterRequest registerRequest)
 			{
-				if (users.Find(u => registerRequest.UserName == u.Login) != null)
+				if (users.Find(user => registerRequest.UserName == user.Login) != null)
 				{
 					Net.SendResponse(comm.GetStream(), new SignResponse(null, true, "Username not available"));
 					return;
@@ -170,7 +170,7 @@ namespace Chat_App
 
 			private void NewTopic(NewTopicRequest newTopicRequest)
 			{
-				if (topics.Find(t => t.Name == newTopicRequest.TopicName) != null)
+				if (topics.Find(topic => topic.Name == newTopicRequest.TopicName) != null)
 				{
 					Net.SendResponse(comm.GetStream(), new NewTopicResponse(true, "This topic already exists"));
 					return;
