@@ -19,7 +19,7 @@
 - Save and retrieve the users, the topics and the lists of messages in files
 - A safety when the client is closed to make the user exit either the topic or the private discussion, log out and to terminate the corresponding thread in the server
 
-### Unimplemented functionalities
+### Not implemented functionalities
 
 - Graphical interface
 
