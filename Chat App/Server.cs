@@ -131,14 +131,12 @@ namespace Chat_App
 
 			private void Register(RegisterRequest registerRequest)
 			{
-				foreach (User user in users)
+				if (users.Find(u => registerRequest.UserName == u.Login) != null)
 				{
-					if (registerRequest.UserName == user.Login)
-					{
-						Net.SendResponse(comm.GetStream(), new SignResponse(null, true, "Username not available"));
-						return;
-					}
+					Net.SendResponse(comm.GetStream(), new SignResponse(null, true, "Username not available"));
+					return;
 				}
+
 				User newUser = new User(registerRequest.UserName, registerRequest.Password, null, comm);
 				users.Add(newUser);
 
@@ -148,38 +146,36 @@ namespace Chat_App
 
 			private void Login(LoginRequest loginRequest)
 			{
-				foreach (User user in users)
-				{
-					if (loginRequest.UserName == user.Login && loginRequest.Password == user.Password)
-					{
-						if (user.TcpClient == null)
-						{
-							user.TcpClient = comm;
+				User user = users.Find(u => loginRequest.UserName == u.Login && loginRequest.Password == u.Password);
 
-							Net.SendResponse(comm.GetStream(), new SignResponse(user.Login));
-							Console.WriteLine(user.Login + " logged in");
-							return;
-						}
-						else
-						{
-							Net.SendResponse(comm.GetStream(), new SignResponse(null, true, "This account is already being used"));
-							return;
-						}
+				if (user != null)
+				{
+					if (user.TcpClient == null)
+					{
+						user.TcpClient = comm;
+
+						Net.SendResponse(comm.GetStream(), new SignResponse(user.Login));
+						Console.WriteLine(user.Login + " logged in");
+					}
+					else
+					{
+						Net.SendResponse(comm.GetStream(), new SignResponse(null, true, "This account is already being used"));
 					}
 				}
-				Net.SendResponse(comm.GetStream(), new SignResponse(null, true, "This combination of login / password does not exist"));
+				else
+				{
+					Net.SendResponse(comm.GetStream(), new SignResponse(null, true, "This combination of login / password does not exist"));
+				}
 			}
 
 			private void NewTopic(NewTopicRequest newTopicRequest)
 			{
-				foreach (Topic topic in topics)
+				if (topics.Find(t => t.Name == newTopicRequest.TopicName) != null)
 				{
-					if (topic.Name == newTopicRequest.TopicName)
-					{
-						Net.SendResponse(comm.GetStream(), new NewTopicResponse(true, "This topic already exists"));
-						return;
-					}
+					Net.SendResponse(comm.GetStream(), new NewTopicResponse(true, "This topic already exists"));
+					return;
 				}
+
 				Topic newTopic = new Topic(newTopicRequest.TopicName);
 				topics.Add(newTopic);
 
@@ -206,23 +202,12 @@ namespace Chat_App
 
 			private void JoinTopic(JoinTopicRequest joinTopicRequest)
 			{
-				foreach (Topic topic in topics)
-				{
-					if (topic.Name == joinTopicRequest.TopicName)
-					{
-						foreach (User user in users)
-						{
-							if (user.Login == joinTopicRequest.UserName)
-							{
-								topic.Users.Add(user);
-								Console.WriteLine(joinTopicRequest.UserName + " joined topic " + joinTopicRequest.TopicName);
-								Net.SendResponse(comm.GetStream(), new JoinTopicResponse(topic));
-								return;
-							}
-						}
-					}
-				}
-				Net.SendResponse(comm.GetStream(), new JoinTopicResponse(null, true, "No such topic"));
+				Topic topic = topics.Find(t => t.Name == joinTopicRequest.TopicName);
+				User user = users.Find(u => u.Login == joinTopicRequest.UserName);
+
+				topic.Users.Add(user);
+				Console.WriteLine(joinTopicRequest.UserName + " joined topic " + joinTopicRequest.TopicName);
+				Net.SendResponse(comm.GetStream(), new JoinTopicResponse(topic));
 			}
 
 			private void SendPublicMessage(NewPublicMessageRequest newPublicMessageRequest)
@@ -233,39 +218,24 @@ namespace Chat_App
 					return;
 				}
 
-				foreach (Topic topic in topics)
-				{
-					if (topic.Name == newPublicMessageRequest.TopicName)
-					{
-						topic.PublicMessages.Add(new PublicMessage(newPublicMessageRequest.Message, newPublicMessageRequest.UserName, topic.Name));
-						Console.WriteLine(newPublicMessageRequest.UserName + " sent a message in " + topic.Name);
+				Topic topic = topics.Find(t => t.Name == newPublicMessageRequest.TopicName);
 
-						foreach (User userConnected in topic.Users)
-						{
-							Net.SendResponse(userConnected.TcpClient.GetStream(), new NewPublicMessageResponse(topic.PublicMessages));
-						}
-						return;
-					}
+				topic.PublicMessages.Add(new PublicMessage(newPublicMessageRequest.Message, newPublicMessageRequest.UserName, topic.Name));
+				Console.WriteLine(newPublicMessageRequest.UserName + " sent a message in " + topic.Name);
+
+				foreach (User userConnected in topic.Users)
+				{
+					Net.SendResponse(userConnected.TcpClient.GetStream(), new NewPublicMessageResponse(topic.PublicMessages));
 				}
 			}
 
 			private void ExitTopic(ExitTopicRequest exitTopicRequest)
 			{
-				foreach (Topic topic in topics)
-				{
-					if (topic.Name == exitTopicRequest.TopicName)
-					{
-						foreach (User user in topic.Users)
-						{
-							if (user.Login == exitTopicRequest.UserName)
-							{
-								topic.Users.Remove(user);
-								Console.WriteLine(user.Login + " exited topic " + topic.Name);
-								return;
-							}
-						}
-					}
-				}
+				Topic topic = topics.Find(t => t.Name == exitTopicRequest.TopicName);
+				User user = users.Find(u => u.Login == exitTopicRequest.UserName);
+
+				topic.Users.Remove(user);
+				Console.WriteLine(user.Login + " exited topic " + topic.Name);
 			}
 
 			private void GetUsers(GetUsersRequest getUsersRequest)
@@ -290,42 +260,31 @@ namespace Chat_App
 
 			private void OpenPrivateDiscussion(OpenPrivateDiscussionRequest openPrivateDiscussionRequest)
 			{
-				foreach (User user in users)
+				User user = users.Find(u => u.Login == openPrivateDiscussionRequest.UserName);
+				User chosenUser = users.Find(u => u.Login == openPrivateDiscussionRequest.ChosenUserName);
+
+				if (!user.PrivateMessages.ContainsKey(chosenUser.Login))
 				{
-					if (user.Login == openPrivateDiscussionRequest.UserName)
+					user.PrivateMessages.Add(chosenUser.Login, new List<PrivateMessage>());
+				}
+				if (!chosenUser.PrivateMessages.ContainsKey(user.Login))
+				{
+					chosenUser.PrivateMessages.Add(user.Login, new List<PrivateMessage>());
+				}
+
+				foreach (KeyValuePair<string, List<PrivateMessage>> kvp in user.PrivateMessages)
+				{
+					if (kvp.Key == chosenUser.Login)
 					{
-						foreach (User chosenUser in users)
-						{
-							if (chosenUser.Login == openPrivateDiscussionRequest.ChosenUserName)
-							{
-								if (!user.PrivateMessages.ContainsKey(chosenUser.Login))
-								{
-									user.PrivateMessages.Add(chosenUser.Login, new List<PrivateMessage>());
-								}
-								if (!chosenUser.PrivateMessages.ContainsKey(user.Login))
-								{
-									chosenUser.PrivateMessages.Add(user.Login, new List<PrivateMessage>());
-								}
+						Net.SendResponse(comm.GetStream(), new OpenPrivateDiscussionResponse(kvp));
+						Console.WriteLine(openPrivateDiscussionRequest.UserName +
+							" entered private discussion with " +
+							openPrivateDiscussionRequest.ChosenUserName);
 
-								foreach (KeyValuePair<string, List<PrivateMessage>> kvp in user.PrivateMessages)
-								{
-									if (kvp.Key == chosenUser.Login)
-									{
-										Net.SendResponse(comm.GetStream(), new OpenPrivateDiscussionResponse(kvp));
-										Console.WriteLine(openPrivateDiscussionRequest.UserName +
-											" entered private discussion with " +
-											openPrivateDiscussionRequest.ChosenUserName);
-
-										user.UserInprivateWith = chosenUser.Login;
-										return;
-									}
-								}
-							}
-						}
-						break;
+						user.UserInprivateWith = chosenUser.Login;
+						return;
 					}
 				}
-				Net.SendResponse(comm.GetStream(), new JoinTopicResponse(null, true, "No such user"));
 			}
 
 			private void SendPrivateMessage(NewPrivateMessageRequest newPrivateMessageRequest)
@@ -336,73 +295,53 @@ namespace Chat_App
 					return;
 				}
 
-				foreach (User sender in users)
+				User sender = users.Find(user => user.Login == newPrivateMessageRequest.SenderName);
+				User receiver = users.Find(user => user.Login == newPrivateMessageRequest.ReceiverName);
+
+				foreach (KeyValuePair<string, List<PrivateMessage>> kvp in sender.PrivateMessages)
 				{
-					if (sender.Login == newPrivateMessageRequest.SenderName)
+					if (kvp.Key == receiver.Login && sender.UserInprivateWith == receiver.Login)
 					{
-						foreach (User receiver in users)
+						kvp.Value.Add(new PrivateMessage(
+							newPrivateMessageRequest.Message, newPrivateMessageRequest.SenderName, newPrivateMessageRequest.ReceiverName));
+
+						Net.SendResponse(comm.GetStream(), new NewPrivateMessageResponse(kvp.Value));
+						break;
+					}
+				}
+
+				foreach (KeyValuePair<string, List<PrivateMessage>> kvp in receiver.PrivateMessages)
+				{
+					if (kvp.Key == sender.Login)
+					{
+						kvp.Value.Add(new PrivateMessage(
+							newPrivateMessageRequest.Message, newPrivateMessageRequest.SenderName, newPrivateMessageRequest.ReceiverName));
+
+						if (receiver.TcpClient != null && receiver.UserInprivateWith == sender.Login)
 						{
-							if (receiver.Login == newPrivateMessageRequest.ReceiverName)
-							{
-								foreach (KeyValuePair<string, List<PrivateMessage>> kvp in sender.PrivateMessages)
-								{
-									if (kvp.Key == receiver.Login && sender.UserInprivateWith == receiver.Login)
-									{
-										kvp.Value.Add(new PrivateMessage(
-											newPrivateMessageRequest.Message, newPrivateMessageRequest.SenderName, newPrivateMessageRequest.ReceiverName));
-
-										Net.SendResponse(comm.GetStream(), new NewPrivateMessageResponse(kvp.Value));
-										break;
-									}
-								}
-
-								foreach (KeyValuePair<string, List<PrivateMessage>> kvp in receiver.PrivateMessages)
-								{
-									if (kvp.Key == sender.Login)
-									{
-										kvp.Value.Add(new PrivateMessage(
-											newPrivateMessageRequest.Message, newPrivateMessageRequest.SenderName, newPrivateMessageRequest.ReceiverName));
-
-										if (receiver.TcpClient != null && receiver.UserInprivateWith == sender.Login)
-										{
-											Net.SendResponse(receiver.TcpClient.GetStream(), new NewPrivateMessageResponse(kvp.Value));
-										}
-										break;
-									}
-								}
-
-								Console.WriteLine(sender.Login + " has sent a message to " + receiver.Login);
-							}
+							Net.SendResponse(receiver.TcpClient.GetStream(), new NewPrivateMessageResponse(kvp.Value));
 						}
 						break;
 					}
 				}
+
+				Console.WriteLine(sender.Login + " has sent a message to " + receiver.Login);
 			}
 
 			private void ExitPrivateDiscussion(ExitPrivateDiscussionRequest exitPrivateDiscussionRequest)
 			{
-				foreach (User user in users)
-				{
-					if (user.Login == exitPrivateDiscussionRequest.UserName)
-					{
-						Console.WriteLine(user.Login + " exited private discussion with " + user.UserInprivateWith);
-						user.UserInprivateWith = null;
-						return;
-					}
-				}
+				User user = users.Find(u => u.Login == exitPrivateDiscussionRequest.UserName);
+
+				Console.WriteLine(user.Login + " exited private discussion with " + user.UserInprivateWith);
+				user.UserInprivateWith = null;
 			}
 
 			private void Logout(LogoutRequest logoutRequest)
 			{
-				foreach (User user in users)
-				{
-					if (user.Login == logoutRequest.UserName && user.TcpClient != null)
-					{
-						user.TcpClient = null;
-						Console.WriteLine(user.Login + " logged out");
-						return;
-					}
-				}
+				User user = users.Find(u => u.Login == logoutRequest.UserName && u.TcpClient != null);
+
+				user.TcpClient = null;
+				Console.WriteLine(user.Login + " logged out");
 			}
 
 			private void CloseConnection()
