@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace Communication
 {
 	[Serializable]
-	public abstract class Response : IMessage
+	public abstract class Response
 	{
 		private readonly bool err;
 		private readonly string errMsg;
@@ -24,14 +24,14 @@ namespace Communication
 	[Serializable]
 	public class SignResponse : Response
 	{
-		private readonly User user;
+		private readonly string userName;
 
-		public SignResponse(User user, bool err = false, string errMsg = null) : base(err, errMsg)
+		public SignResponse(string userName, bool err = false, string errMsg = null) : base(err, errMsg)
 		{
-			this.user = user;
+			this.userName = userName;
 		}
 
-		public User User => user;
+		public string UserName => userName;
 	}
 
 	[Serializable]
@@ -54,19 +54,6 @@ namespace Communication
 	}
 
 	[Serializable]
-	public class GetPublicMessagesResponse : Response
-	{
-		private readonly List<PublicMessage> publicMessages;
-
-		public GetPublicMessagesResponse(List<PublicMessage> publicMessages, bool err = false, string errMsg = null) : base(err, errMsg)
-		{
-			this.publicMessages = publicMessages;
-		}
-
-		public List<PublicMessage> PublicMessages => publicMessages;
-	}
-
-	[Serializable]
 	public class JoinTopicResponse : Response
 	{
 		private readonly Topic topic;
@@ -82,13 +69,52 @@ namespace Communication
 	[Serializable]
 	public class NewPublicMessageResponse : Response
 	{
-		private readonly Topic topic;
+		private readonly List<PublicMessage> publicMessages;
 
-		public NewPublicMessageResponse(Topic topic, bool err = false, string errMsg = null) : base(err, errMsg)
+		public NewPublicMessageResponse(List<PublicMessage> publicMessages, bool err = false, string errMsg = null) : base(err, errMsg)
 		{
-			this.topic = topic;
+			this.publicMessages = publicMessages;
 		}
 
-		public Topic Topic => topic;
+		public List<PublicMessage> PublicMessages => publicMessages;
+	}
+
+	[Serializable]
+	public class GetUsersResponse : Response
+	{
+		private readonly List<string> users;
+
+		public GetUsersResponse(List<string> users, bool err = false, string errMsg = null) : base(err, errMsg)
+		{
+			this.users = users;
+		}
+
+		public List<string> Users => users;
+	}
+
+	[Serializable]
+	public class OpenPrivateDiscussionResponse : Response
+	{
+		private readonly KeyValuePair<string, List<PrivateMessage>> privateMessages;
+
+		public OpenPrivateDiscussionResponse(KeyValuePair<string, List<PrivateMessage>> privateMessages, bool err = false, string errMsg = null) : base(err, errMsg)
+		{
+			this.privateMessages = privateMessages;
+		}
+
+		public KeyValuePair<string, List<PrivateMessage>> PrivateMessages => privateMessages;
+	}
+
+	[Serializable]
+	public class NewPrivateMessageResponse : Response
+	{
+		private readonly List<PrivateMessage> privateMessages;
+
+		public NewPrivateMessageResponse(List<PrivateMessage> privateMessages, bool err = false, string errMsg = null) : base(err, errMsg)
+		{
+			this.privateMessages = privateMessages;
+		}
+
+		public List<PrivateMessage> PrivateMessages => privateMessages;
 	}
 }

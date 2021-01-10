@@ -1,6 +1,7 @@
 ﻿using Communication;
 using Models;
 using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -12,16 +13,16 @@ namespace Client
 		private readonly string hostname;
 		private readonly int port;
 		private TcpClient comm;
-		private User user;
-		private Topic topic;
+		private string userName;
+		private string topicName;
 
 		public Client(string h, int p)
 		{
 			hostname = h;
 			port = p;
 			comm = null;
-			user = null;
-			topic = null;
+			userName = null;
+			topicName = null;
 		}
 
 		public void Start()
@@ -93,20 +94,24 @@ namespace Client
 						Logout();
 						break;
 				}
-			} while (user != null);
+			} while (userName != null);
 		}
 
 		private SignResponse Login()
 		{
 			Console.WriteLine("Login:");
-			var login = Console.ReadLine();
+			string login = Console.ReadLine();
+
 			Console.WriteLine("Password:");
-			var password = Console.ReadLine();
+			string password = Console.ReadLine();
 
-			Net.SendMsg(comm.GetStream(), new LoginRequest(new User(login, password)));
-			var response = (SignResponse)Net.RcvMsg(comm.GetStream());
+			Net.SendRequest(comm.GetStream(), new LoginRequest(login, password));
+			SignResponse response = (SignResponse)Net.RcvResponse(comm.GetStream());
 
-			user = response.User;
+			if (!response.Error)
+			{
+				userName = login;
+			}
 			WriteError(response);
 
 			return response;
@@ -115,14 +120,18 @@ namespace Client
 		private SignResponse Register()
 		{
 			Console.WriteLine("Login:");
-			var login = Console.ReadLine();
+			string login = Console.ReadLine();
+
 			Console.WriteLine("Password:");
-			var password = Console.ReadLine();
+			string password = Console.ReadLine();
 
-			Net.SendMsg(comm.GetStream(), new RegisterRequest(new User(login, password)));
-			var response = (SignResponse)Net.RcvMsg(comm.GetStream());
+			Net.SendRequest(comm.GetStream(), new RegisterRequest(login, password));
+			SignResponse response = (SignResponse)Net.RcvResponse(comm.GetStream());
 
-			user = response.User;
+			if (!response.Error)
+			{
+				userName = login;
+			}
 			WriteError(response);
 
 			return response;
@@ -131,10 +140,10 @@ namespace Client
 		private void CreateTopic()
 		{
 			Console.WriteLine("What will be the topic's name?");
-			var name = Console.ReadLine();
+			string name = Console.ReadLine();
 
-			Net.SendMsg(comm.GetStream(), new NewTopicRequest(new Topic(name)));
-			var reponse = (NewTopicResponse)Net.RcvMsg(comm.GetStream());
+			Net.SendRequest(comm.GetStream(), new NewTopicRequest(name));
+			NewTopicResponse reponse = (NewTopicResponse)Net.RcvResponse(comm.GetStream());
 
 			Console.Clear();
 			WriteError(reponse);
@@ -147,43 +156,41 @@ namespace Client
 
 		private void PrivateMessage()
 		{
-
+			SendPrivateMessage(OpenDiscussion(GetUsers()));
 		}
 
 		private void Logout()
 		{
-			Net.SendMsg(comm.GetStream(), new LogoutRequest(user));
-			user = null;
+			Net.SendRequest(comm.GetStream(), new LogoutRequest(userName));
+			userName = null;
 		}
 
 		private GetTopicsResponse GetTopics()
 		{
-			Net.SendMsg(comm.GetStream(), new GetTopicsRequest());
+			Net.SendRequest(comm.GetStream(), new GetTopicsRequest());
 
-			return (GetTopicsResponse)Net.RcvMsg(comm.GetStream());
+			return (GetTopicsResponse)Net.RcvResponse(comm.GetStream());
 		}
 
-		private JoinTopicResponse JoinTopic(GetTopicsResponse responseGetTopics)
+		private JoinTopicResponse JoinTopic(GetTopicsResponse getTopicsResponse)
 		{
-			if (!responseGetTopics.Error)
+			if (!getTopicsResponse.Error)
 			{
 				string choice;
 				do
 				{
 					Console.WriteLine("Which topic do you want to join?");
-					int i = 1;
-					foreach (var topicName in responseGetTopics.Topics)
+					foreach (string topic in getTopicsResponse.Topics)
 					{
-						Console.WriteLine(topicName);
-						i++;
+						Console.WriteLine(topic);
 					}
 					choice = Console.ReadLine();
-				} while (!responseGetTopics.Topics.Contains(choice));
+				} while (!getTopicsResponse.Topics.Contains(choice));
 
-				Net.SendMsg(comm.GetStream(), new JoinTopicRequest(new Topic(choice), user));
-				return (JoinTopicResponse)Net.RcvMsg(comm.GetStream());
+				Net.SendRequest(comm.GetStream(), new JoinTopicRequest(choice, userName));
+				return (JoinTopicResponse)Net.RcvResponse(comm.GetStream());
 			}
-			return new JoinTopicResponse(null, true, responseGetTopics.ErrMsg);
+			return new JoinTopicResponse(null, true, getTopicsResponse.ErrMsg);
 		}
 
 		private void SendPublicMessage(JoinTopicResponse joinTopicResponse)
@@ -192,47 +199,119 @@ namespace Client
 
 			if (!joinTopicResponse.Error)
 			{
-				topic = joinTopicResponse.Topic;
+				topicName = joinTopicResponse.Topic.Name;
+
+				Thread getMessagesThread = new Thread(new ParameterizedThreadStart(GetPublicMessages));
+				getMessagesThread.Start(joinTopicResponse.Topic.PublicMessages);
+
 				string message;
-
-				var getMessagesThread = new Thread(new ThreadStart(GetPublicMessages));
-				getMessagesThread.Start();
-
 				do
 				{
 					message = Console.ReadLine();
-					if (message != "EXIT")
-					{
-						Net.SendMsg(comm.GetStream(), new NewPublicMessageRequest(new PublicMessage(message, user, topic)));
-					}
+					Net.SendRequest(comm.GetStream(), new NewPublicMessageRequest(message, userName, topicName));
 				} while (message != "EXIT");
 
 				ExitTopic();
-
-				getMessagesThread.Abort();
 			}
 		}
 
-		private void GetPublicMessages()
+		private void GetPublicMessages(object obj)
 		{
-			while (topic != null)
+			if (obj is List<PublicMessage> publicMessages)
 			{
-				Console.Clear();
-				foreach (var publicMessage in topic.PublicMessages)
+				NewPublicMessageResponse newPublicMessageResponse;
+				do
 				{
-					Console.WriteLine(publicMessage);
-				}
-				Console.WriteLine("Write your message or EXIT if you want to exit the topic");
+					Console.Clear();
+					foreach (PublicMessage publicMessage in publicMessages)
+					{
+						Console.WriteLine(publicMessage);
+					}
+					Console.WriteLine("Write your message or EXIT if you want to exit the topic");
 
-				var newPublicMessageResponse = (NewPublicMessageResponse)Net.RcvMsg(comm.GetStream());
-				topic = newPublicMessageResponse.Topic;
+					newPublicMessageResponse = (NewPublicMessageResponse)Net.RcvResponse(comm.GetStream());
+
+					publicMessages = newPublicMessageResponse.PublicMessages;
+				} while (!newPublicMessageResponse.Error);
 			}
 		}
 
 		private void ExitTopic()
 		{
-			Net.SendMsg(comm.GetStream(), new ExitTopicRequest(topic, user));
-			topic = null;
+			Net.SendRequest(comm.GetStream(), new ExitTopicRequest(topicName, userName));
+			topicName = null;
+		}
+		private GetUsersResponse GetUsers()
+		{
+			Net.SendRequest(comm.GetStream(), new GetUsersRequest(userName));
+
+			return (GetUsersResponse)Net.RcvResponse(comm.GetStream());
+		}
+
+		private void GetPrivateMessages(object obj)
+		{
+			if (obj is List<PrivateMessage> privateMessages)
+			{
+				NewPrivateMessageResponse newPrivateMessageResponse;
+				do
+				{
+					Console.Clear();
+					foreach (PrivateMessage privateMessage in privateMessages)
+					{
+						Console.WriteLine(privateMessage);
+					}
+					Console.WriteLine("Write your message or EXIT if you want to exit the topic");
+
+					newPrivateMessageResponse = (NewPrivateMessageResponse)Net.RcvResponse(comm.GetStream());
+					privateMessages = newPrivateMessageResponse.PrivateMessages;
+				} while (!newPrivateMessageResponse.Error);
+			}
+		}
+
+		private OpenPrivateDiscussionResponse OpenDiscussion(GetUsersResponse getUsersResponse)
+		{
+			if (!getUsersResponse.Error)
+			{
+				string choice;
+				do
+				{
+					Console.WriteLine("Who do you want to chat with?");
+					foreach (string user in getUsersResponse.Users)
+					{
+						Console.WriteLine(user);
+					}
+					choice = Console.ReadLine();
+				} while (!getUsersResponse.Users.Contains(choice));
+
+				Net.SendRequest(comm.GetStream(), new OpenPrivateDiscussionRequest(choice, userName));
+				return (OpenPrivateDiscussionResponse)Net.RcvResponse(comm.GetStream());
+			}
+			return new OpenPrivateDiscussionResponse(default, true, getUsersResponse.ErrMsg);
+		}
+
+		private void SendPrivateMessage(OpenPrivateDiscussionResponse openPrivateDiscussionResponse)
+		{
+			WriteError(openPrivateDiscussionResponse);
+
+			if (!openPrivateDiscussionResponse.Error)
+			{
+				Thread getMessagesThread = new Thread(new ParameterizedThreadStart(GetPrivateMessages));
+				getMessagesThread.Start(openPrivateDiscussionResponse.PrivateMessages.Value);
+
+				string message;
+				do
+				{
+					message = Console.ReadLine();
+					Net.SendRequest(comm.GetStream(), new NewPrivateMessageRequest(openPrivateDiscussionResponse.PrivateMessages.Key, userName, message));
+				} while (message != "EXIT");
+
+				ExitPrivateDiscussions();
+			}
+		}
+
+		private void ExitPrivateDiscussions()
+		{
+			Net.SendRequest(comm.GetStream(), new ExitPrivateDiscussionRequest(userName));
 		}
 
 		private void WriteError(Response response)
@@ -261,16 +340,16 @@ namespace Client
 
 		private bool Handler(CtrlType sig)
 		{
-			if (user != null)
+			if (userName != null)
 			{
-				if (topic != null)
+				if (topicName != null)
 				{
 					ExitTopic();
 				}
 				Logout();
 			}
 
-			Net.SendMsg(comm.GetStream(), new ClientCloseRequest());
+			Net.SendRequest(comm.GetStream(), new ClientCloseRequest());
 			comm.Close();
 
 			exitSystem = true;

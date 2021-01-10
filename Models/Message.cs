@@ -6,16 +6,16 @@ namespace Models
 	public abstract class Message
 	{
 		private string text;
-		private User sender;
+		private string sender;
 		private DateTime time;
 
 		public string Text { get => text; set => text = value; }
 
-		public User Sender { get => sender; set => sender = value; }
+		public string Sender { get => sender; set => sender = value; }
 
 		public DateTime Time { get => time; set => time = value; }
 
-		public Message(string txt, User usr)
+		public Message(string txt, string usr)
 		{
 			Text = txt;
 			Sender = usr;
@@ -24,18 +24,18 @@ namespace Models
 
 		public override string ToString()
 		{
-			return Sender.Login + " - " + Time.Day + "/" + Time.Month + "/" + Time.Year + " " + Time.Hour + ":" + Time.Minute + "\n" + Text + "\n";
+			return Sender + " - " + Time.Day + "/" + Time.Month + "/" + Time.Year + " " + Time.Hour + ":" + Time.Minute + "\n" + Text + "\n";
 		}
 	}
 
 	[Serializable]
 	public class PrivateMessage : Message
 	{
-		private User receiver;
+		private string receiver;
 
-		public User Receiver { get => receiver; set => receiver = value; }
+		public string Receiver { get => receiver; set => receiver = value; }
 
-		public PrivateMessage(string message, User sender, User receiver) : base(message, sender)
+		public PrivateMessage(string message, string sender, string receiver) : base(message, sender)
 		{
 			Receiver = receiver;
 		}
@@ -44,11 +44,11 @@ namespace Models
 	[Serializable]
 	public class PublicMessage : Message
 	{
-		private Topic topic;
+		private string topic;
 
-		public Topic Topic { get => topic; set => topic = value; }
+		public string Topic { get => topic; set => topic = value; }
 
-		public PublicMessage(string message, User sender, Topic topic) : base(message, sender)
+		public PublicMessage(string message, string sender, string topic) : base(message, sender)
 		{
 			Topic = topic;
 		}

@@ -5,16 +5,28 @@ namespace Communication
 {
 	public class Net
 	{
-		public static void SendMsg(Stream s, IMessage msg)
+		public static void SendRequest(Stream s, IRequest msg)
 		{
-			var bf = new BinaryFormatter();
+			BinaryFormatter bf = new BinaryFormatter();
 			bf.Serialize(s, msg);
 		}
 
-		public static IMessage RcvMsg(Stream s)
+		public static IRequest RcvRequest(Stream s)
 		{
-			var bf = new BinaryFormatter();
-			return (IMessage)bf.Deserialize(s);
+			BinaryFormatter bf = new BinaryFormatter();
+			return (IRequest)bf.Deserialize(s);
+		}
+
+		public static void SendResponse(Stream s, Response msg)
+		{
+			BinaryFormatter bf = new BinaryFormatter();
+			bf.Serialize(s, msg);
+		}
+
+		public static Response RcvResponse(Stream s)
+		{
+			BinaryFormatter bf = new BinaryFormatter();
+			return (Response)bf.Deserialize(s);
 		}
 	}
 }

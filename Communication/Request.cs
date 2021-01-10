@@ -1,120 +1,176 @@
-﻿using Models;
-using System;
+﻿using System;
 
 namespace Communication
 {
-	public interface IRequest : IMessage { }
+	public interface IRequest { }
 
 	[Serializable]
 	public abstract class SignRequest : IRequest
 	{
-		private readonly User user;
+		private readonly string userName;
+		private readonly string password;
 
-		public SignRequest(User user)
+		public SignRequest(string userName, string password)
 		{
-			this.user = user;
+			this.userName = userName;
+			this.password = password;
 		}
 
-		public User User => user;
+		public string UserName => userName;
+
+		public string Password => password;
 	}
 
 	[Serializable]
 	public class LoginRequest : SignRequest
 	{
-		public LoginRequest(User user) : base(user) { }
+		public LoginRequest(string userName, string password) : base(userName, password) { }
 	}
 
 	[Serializable]
 	public class RegisterRequest : SignRequest
 	{
-		public RegisterRequest(User user) : base(user) { }
+		public RegisterRequest(string userName, string password) : base(userName, password) { }
 	}
 
 	[Serializable]
 	public class LogoutRequest : SignRequest
 	{
-		public LogoutRequest(User user) : base(user) { }
+		public LogoutRequest(string userName) : base(userName, null) { }
 	}
 
 	[Serializable]
 	public class NewTopicRequest : IRequest
 	{
-		private readonly Topic topic;
+		private readonly string topicName;
 
-		public NewTopicRequest(Topic topic)
+		public NewTopicRequest(string topicName)
 		{
-			this.topic = topic;
+			this.topicName = topicName;
 		}
 
-		public Topic Topic => topic;
+		public string TopicName => topicName;
 	}
 
 	[Serializable]
-	public class GetTopicsRequest : IRequest
-	{
-		public GetTopicsRequest() { }
-	}
-
-	[Serializable]
-	public class GetPublicMessagesRequest : IRequest
-	{
-		private readonly Topic topic;
-
-		public GetPublicMessagesRequest(Topic topic)
-		{
-			this.topic = topic;
-		}
-
-		public Topic Topic => topic;
-	}
+	public class GetTopicsRequest : IRequest { }
 
 	[Serializable]
 	public class NewPublicMessageRequest : IRequest
 	{
-		private readonly PublicMessage publicMessage;
+		private readonly string message;
+		private readonly string userName;
+		private readonly string topicName;
 
-		public NewPublicMessageRequest(PublicMessage publicMessage)
+		public NewPublicMessageRequest(string message, string userName, string topicName)
 		{
-			this.publicMessage = publicMessage;
+			this.message = message;
+			this.userName = userName;
+			this.topicName = topicName;
 		}
 
-		public PublicMessage PublicMessage => publicMessage;
+		public string Message => message;
+
+		public string UserName => userName;
+
+		public string TopicName => topicName;
 	}
 
 	[Serializable]
 	public class JoinTopicRequest : IRequest
 	{
-		private readonly Topic topic;
-		private readonly User user;
+		private readonly string topicName;
+		private readonly string userName;
 
-		public JoinTopicRequest(Topic topic, User user)
+		public JoinTopicRequest(string topicName, string userName)
 		{
-			this.topic = topic;
-			this.user = user;
+			this.topicName = topicName;
+			this.userName = userName;
 		}
 
-		public Topic Topic => topic;
+		public string TopicName => topicName;
 
-		public User User => user;
+		public string UserName => userName;
 	}
 
 	[Serializable]
 	public class ExitTopicRequest : IRequest
 	{
-		private readonly Topic topic;
-		private readonly User user;
+		private readonly string topicName;
+		private readonly string userName;
 
-		public ExitTopicRequest(Topic topic, User user)
+		public ExitTopicRequest(string topicName, string userName)
 		{
-			this.topic = topic;
-			this.user = user;
+			this.topicName = topicName;
+			this.userName = userName;
 		}
 
-		public Topic Topic => topic;
+		public string TopicName => topicName;
 
-		public User User => user;
+		public string UserName => userName;
 	}
 
 	[Serializable]
 	public class ClientCloseRequest : IRequest { }
+
+	[Serializable]
+	public class GetUsersRequest : IRequest
+	{
+		private readonly string userName;
+
+		public GetUsersRequest(string userName)
+		{
+			this.userName = userName;
+		}
+
+		public string UserName => userName;
+	}
+
+	[Serializable]
+	public class OpenPrivateDiscussionRequest : IRequest
+	{
+		private readonly string chosenUserName;
+		private readonly string userName;
+
+		public OpenPrivateDiscussionRequest(string chosenUserName, string userName)
+		{
+			this.chosenUserName = chosenUserName;
+			this.userName = userName;
+		}
+
+		public string ChosenUserName => chosenUserName;
+		public string UserName => userName;
+	}
+
+	[Serializable]
+	public class NewPrivateMessageRequest : IRequest
+	{
+		private readonly string receiverName;
+		private readonly string senderName;
+		private readonly string message;
+
+		public NewPrivateMessageRequest(string receiverName, string senderName, string message)
+		{
+			this.receiverName = receiverName;
+			this.senderName = senderName;
+			this.message = message;
+		}
+
+		public string ReceiverName => receiverName;
+		public string SenderName => senderName;
+		public string Message => message;
+	}
+
+	[Serializable]
+	public class ExitPrivateDiscussionRequest : IRequest
+	{
+		private readonly string userName;
+
+		public ExitPrivateDiscussionRequest(string userName)
+		{
+			this.userName = userName;
+		}
+
+		public string UserName => userName;
+	}
 }
